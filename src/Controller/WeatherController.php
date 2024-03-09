@@ -3,53 +3,96 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Model\HighlanderApiDTO;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 
-//#[Route('/weather')]
+#[Route('/weather')]
 class WeatherController extends AbstractController
 {
-    #[Route('/highlander-says/{threshold<\d+>?50}', host: 'api.localhost')]
-    public function highlanderSaysApi(int $threshold): Response
-    {
-         $draw = random_int(0, 100);
+   #[Route('/highlander-says/api')]
+   public function highlanderSaysApi(
+      #[MapQueryString] ?HighlanderApiDTO $dto = null,
+   ): Response
+   {
+         if(!$dto){
+            $dto = new HighlanderApiDTO();
+            $dto->threshold = 50;
+            $dto->trials = 1;
+         }
 
-         $forecast = $draw < $threshold ? "It's going to rain." : "It's going to be sunny.";
-         
+         for ($i = 0; $i < $dto->trials; $i++){
+            $draw = random_int(0, 100);
+            $forecast = $draw < $dto->threshold ? "It's going to rain." : "It's going to be sunny.";
+            $forecasts[] = $forecast;
+         }  
+
          $json = [
-            'forecast' => $forecast, 
-            'self' => $this->generateUrl(
-                'app_weather_highlandersaysapi', 
-                ['threshold' => $threshold], 
-                UrlGeneratorInterface::ABSOLUTE_URL
-            ),
+            'forecasts' => $forecasts, 
+            'threshold' => $dto->threshold,
          ];
 
-         Return new JsonResponse($json);
+         // $jsonResponse = new JsonResponse($json);
+         // $jsonResponse->setEncodingOptions(JSON_PRETTY_PRINT);
+
+         // return $jsonResponse;
+         return $this->json($json);
     }
 
-    #[Route('/highlander-says/{threshold<\d+>?50}')]
-    public function highlanderSays(int $threshold): Response
+    #[Route('/highlander-says/{threshold<\d+>}')]
+    public function highlanderSays(
+      Request $request,
+      RequestStack $requestStack,
+      ?int $threshold = null,
+      ): Response
     {
-         $draw = random_int(0, 100);
+         $session = $requestStack->getSession();
 
-         $forecast = $draw < $threshold ? "It's going to rain." : "It's going to be sunny.";
+         if ($threshold){
+            $session->set('threshold', $threshold);
+            $this->addFlash(
+               'info', 
+               "You have set the threshold to $threshold"
+            );
+         } else {
+            $threshold = $session->get(name: 'threshold', default: 50);
+         }
+
+         $trials = $request->get(key: 'trials', default: 1);
+         
+         $forecasts = [];
+
+         for ($i = 0; $i < $trials; $i++){
+            $draw = random_int(0, 100);
+            $forecast = $draw < $threshold ? "It's going to rain." : "It's going to be sunny.";
+            $forecasts[] = $forecast;
+         }     
+         
          
          return $this->render('weather/highlander_says.html.twig', [
-            'forecast' => $forecast,
+            'forecasts' => $forecasts,
+            'threshold' => $threshold,
          ]);
     }
 
     #[Route('/highlander-says/{guess}')]
     public function highlanderSaysGuess(string $guess): Response
     {
-        $forecast = "It's going to $guess.";
+         $availableGuesses = ['snow', 'rain', 'hail'];
+         if(!in_array($guess, $availableGuesses)){
+            throw $this->createNotFoundException('This guess is not found.');
+         }
+         $forecast = "It's going to $guess.";
+      
          
          return $this->render('weather/highlander_says.html.twig', [
-            'forecast' => $forecast,
+            'forecasts' => [$forecast],
          ]);
     }
 

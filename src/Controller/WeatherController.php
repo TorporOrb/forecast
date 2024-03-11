@@ -8,12 +8,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 
-#[Route('/weather')]
+#[Route('/{_locale}/weather', requirements: [
+   '_locale' => 'en|de'
+])]
 class WeatherController extends AbstractController
 {
    #[Route('/highlander-says/api')]
@@ -38,10 +42,6 @@ class WeatherController extends AbstractController
             'threshold' => $dto->threshold,
          ];
 
-         // $jsonResponse = new JsonResponse($json);
-         // $jsonResponse->setEncodingOptions(JSON_PRETTY_PRINT);
-
-         // return $jsonResponse;
          return $this->json($json);
     }
 
@@ -49,36 +49,43 @@ class WeatherController extends AbstractController
     public function highlanderSays(
       Request $request,
       RequestStack $requestStack,
+      TranslatorInterface $translator,
       ?int $threshold = null,
+      #[MapQueryParameter]?string $_format = 'html',
       ): Response
     {
-         $session = $requestStack->getSession();
-
-         if ($threshold){
-            $session->set('threshold', $threshold);
-            $this->addFlash(
-               'info', 
-               "You have set the threshold to $threshold"
-            );
-         } else {
-            $threshold = $session->get(name: 'threshold', default: 50);
-         }
-
-         $trials = $request->get(key: 'trials', default: 1);
          
-         $forecasts = [];
+      
+      $session = $requestStack->getSession();
 
-         for ($i = 0; $i < $trials; $i++){
-            $draw = random_int(0, 100);
-            $forecast = $draw < $threshold ? "It's going to rain." : "It's going to be sunny.";
-            $forecasts[] = $forecast;
-         }     
-         
-         
-         return $this->render('weather/highlander_says.html.twig', [
-            'forecasts' => $forecasts,
-            'threshold' => $threshold,
-         ]);
+      if ($threshold){
+         $session->set('threshold', $threshold);
+         $this->addFlash(
+            'info', 
+            $translator->trans('weather.highlander_says.success',
+         [ '%threshold%' => $threshold,]),
+            
+         );
+      } else {
+         $threshold = $session->get(name: 'threshold', default: 50);
+      }
+      $forecasts = [];
+      $trials = $request->get(key: 'trials', default: 1);
+      
+      for ($i = 0; $i < $trials; $i++){
+         $draw = random_int(0, 100);
+         $forecast = $draw < $threshold ? "It's going to rain." : "It's going to be sunny.";
+         $forecasts[] = $forecast;
+      }     
+      
+      
+      $html = $this->renderView("weather/highlander_says.{$_format}.twig", [
+         'forecasts' => $forecasts,
+         'threshold' => $threshold,
+      ]);
+
+      $response = new Response($html);
+      return $response; 
     }
 
     #[Route('/highlander-says/{guess}')]

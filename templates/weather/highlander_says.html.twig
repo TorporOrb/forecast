@@ -1,9 +1,11 @@
-{% extends 'base.html.twig'  %}
+{% extends 'layout_boxed.html.twig'  %}
 
 {% block title %}Highlander Says{% endblock %}
 
-{% block body %}
+{% block content %}
     <h1>Highlander Says</h1>
+
+    {% dump threshold %}
 
     {% for message in app.flashes('info') %}
         <div class="flash-info">
@@ -29,6 +31,8 @@
         <script>
             const route = "{{ url('app_weather_highlandersays')|escape('js') }}";
             console.log(route);
+
+            console.log("{{api_key|escape('js') }}")
         </script>
 
     {% endblock %}

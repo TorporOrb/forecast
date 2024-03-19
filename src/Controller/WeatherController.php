@@ -60,12 +60,11 @@ class WeatherController extends AbstractController
 
       if ($threshold){
          $session->set('threshold', $threshold);
-         $this->addFlash(
-            'info', 
-            $translator->trans('weather.highlander_says.success',
-         [ '%threshold%' => $threshold,]),
-            
-         );
+         // $this->addFlash(
+         //    'info', 
+         //    $translator->trans('weather.highlander_says.success',
+         // [ '%threshold%' => $threshold,]),            
+         // );
       } else {
          $threshold = $session->get(name: 'threshold', default: 50);
       }

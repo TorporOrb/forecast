@@ -7,4 +7,4 @@ navigation:
 
 weather:
   highlander_says:
-    success: "You have successfully set the threshold to %threshold!"
+    success: "You have successfully set the threshold to %threshold%!"

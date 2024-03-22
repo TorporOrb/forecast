@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Tests\Service;
+namespace App\Tests\Controller;
 
-use App\Service\Math;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-class MathTest extends TestCase
+class MathControllerTest extends WebTestCase
 {
     public function dataAdd(): array
     {
@@ -16,11 +15,9 @@ class MathTest extends TestCase
             '0 + 0 = 0' => [0, 0, 0],
             '-2 + -2 = -4' => [-2, -2, -4],
             '88 + 12 = 100' => [88, 12, 100],
-
         ];
 
         return $data;
-
     }
     
     /**
@@ -28,10 +25,15 @@ class MathTest extends TestCase
      */
     public function testAdd($a, $b, $expectedResult): void
     {
-        $this->markTestIncomplete();
-        // $math = new Math();
-        // $result = $math->add($a,$b);
+        $client = static::createClient();
+        $crawler = $client->request('GET', "/math/add/$a/$b");
+
+        $this->assertResponseIsSuccessful();
+
+        $output = $crawler->filter('output');
+        $outputValue = $output->eq(0)->text();
+
+        $this->assertEquals($expectedResult, $outputValue);
         
-        // $this->assertEquals($expectedResult, $result, "$a + $b should equal $expectedResult on Math::add()");
     }
 }

@@ -3,9 +3,9 @@
 namespace App\Tests\Service;
 
 use App\Service\Math;
-use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class MathTest extends TestCase
+class MathIntegrationTestPhpTest extends KernelTestCase
 {
     public function dataAdd(): array
     {
@@ -16,22 +16,25 @@ class MathTest extends TestCase
             '0 + 0 = 0' => [0, 0, 0],
             '-2 + -2 = -4' => [-2, -2, -4],
             '88 + 12 = 100' => [88, 12, 100],
-
         ];
 
         return $data;
-
     }
     
+
     /**
      * @dataProvider dataAdd
      */
     public function testAdd($a, $b, $expectedResult): void
     {
-        $this->markTestIncomplete();
-        // $math = new Math();
-        // $result = $math->add($a,$b);
-        
-        // $this->assertEquals($expectedResult, $result, "$a + $b should equal $expectedResult on Math::add()");
+        $kernel = self::bootKernel();
+
+        $container = static::getContainer();
+
+        $math = $container->get(Math::class);
+
+        $result = $math->add($a,$b);
+
+        $this->assertEquals($expectedResult, $result);
     }
 }
